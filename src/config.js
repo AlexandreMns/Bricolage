@@ -9,7 +9,7 @@ class Database {
   }
   _connect() {
     mongoose
-      .connect(process.env.DBURL)
+      .connect(process.env.MONGODB_CONNECTION)
       .then(() => {
         console.log("Database connection successful");
       })
@@ -20,12 +20,10 @@ class Database {
 }
 
 const config = {
-  secret: process.env.SECRET,
+  secret: String(process.env.SECRET),
   expiresIn: Number(process.env.EXPIRESIN),
-  saltRounds: 10,
+  saltRounds: Number(process.env.SALT_ROUNDS),
 };
 
 const db = new Database();
-
-module.exports = config;
-module.exports = db;
+module.exports = { config, db };

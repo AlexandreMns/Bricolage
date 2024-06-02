@@ -1,17 +1,81 @@
 const express = require("express");
-const { model } = require("mongoose");
+const Product = require("../../models/produto");
+const UserModel = require("../../controllers/userController");
+const Produto = require("../../controllers/produtoControler");
+const verifyToken = require("../../middlewares/verifyToken");
+const path = require("path");
+const multer = require("multer");
+const authorize = require("../../middlewares/authorize");
+const UserController = require("../../controllers/userController");
+const scopes = require("../../models/scopes");
+
+const ProdutoControler = Produto(Product);
 
 const router = express.Router();
-const produto = [];
 
-router.get("/", (req, res) => {
-  res.send(produto);
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, path.join(__dirname, "../../uploads/produtos/"));
+    },
+    filename: function (req, file, cb) {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
+  }),
 });
 
-router.post("/", (req, res) => {
-  const { name, price } = req.body;
-  produto.push({ name, price });
-  res.send(produto);
-});
+//Conseguir Produtos
+router.get("/all", ProdutoControler.findAll);
+
+//Criar Produto
+router.post(
+  "/criar",
+  verifyToken,
+  authorize([scopes["Administrador"]]),
+  upload.single("imagem"),
+  ProdutoControler.create
+);
+//Conseguir produto por id
+router.get("/:id", ProdutoControler.findOne);
+
+//Update produto
+router.put(
+  "/edit/:id",
+  verifyToken,
+  authorize([scopes["Administrador"]]),
+  (req, res, next) => {
+    const body = req.body;
+    console.log("Produto:", body);
+    ProdutoControler.update(req.params.id, body)
+      .then((produto) => {
+        res.status(200);
+        res.send(produto);
+        next();
+      })
+      .catch((err) => {
+        res.status(404);
+        next();
+      });
+  }
+);
+
+//Delete produto
+router.delete(
+  "/delete/:id",
+  verifyToken,
+  authorize([scopes["Administrador"]]),
+  (req, res, next) => {
+    ProdutoControler.removeById(req.params.id)
+      .then(() => {
+        res.status(200);
+        res.send("Produto deletado");
+        next();
+      })
+      .catch((err) => {
+        res.status(404);
+        next();
+      });
+  }
+);
 
 module.exports = router;

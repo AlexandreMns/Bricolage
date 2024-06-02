@@ -1,10 +1,17 @@
 const express = require("express");
-require("./config");
+const mongoose = require("mongoose");
+const config = require("./config");
+const path = require("path");
 const routes = require("./api/routes");
+const dotenv = require("dotenv");
 
+dotenv.config();
+
+const port = process.env.PORT || 3000;
 const app = express();
-const port = 3000;
 const hostname = "localhost";
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(express.json());
 
