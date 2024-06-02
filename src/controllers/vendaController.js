@@ -1,6 +1,11 @@
 // Importa o model
 const Relatorio = require("../models/relatorio");
 const Product = require("../models/produto");
+const newVenda = require("../models/venda");
+const Stock = require("../models/stock");
+const {createAlert} = require("../service/alertConfig");
+const {decodeToken} = require("../utils/TokenUtil");
+
 const User = require("../models/user");
 
 function VendaController(VendaModel) {
@@ -16,6 +21,7 @@ function VendaController(VendaModel) {
     let newVenda = new VendaModel(values);
     return save(newVenda);
   }
+
 
   function save(newVenda) {
     return new Promise(function (resolve, reject) {
@@ -64,7 +70,6 @@ function VendaController(VendaModel) {
   };
 
   const CriarVenda = async (req, res, next) => {
-    async (req, res) => {
       try {
         const { id, quantidade } = req.body;
 
@@ -74,6 +79,7 @@ function VendaController(VendaModel) {
             .status(400)
             .send({ auth: false, message: "No token provided" });
         }
+        console.log();
         const decoded = await decodeToken(token);
         const clienteID = decoded.id;
 
@@ -87,37 +93,41 @@ function VendaController(VendaModel) {
         if (!produtoExistente) {
           return res.status(400).json({ message: "Produto não encontrado" });
         }
+
+        let stock = await Stock.findOne({ product : id });
         // Verificar se há quantidade suficiente disponível
-        if (quantidade > produtoExistente.quantidadeDisponivel) {
+        if (quantidade > stock.quantity) {
           return res
             .status(400)
             .json({ message: "Quantidade disponível insuficiente " });
         }
 
         // Criar a encomenda
-        const precoTotal = produtoExistente.preço * quantidade;
+        const precoTotal = produtoExistente.price * quantidade;
         const precoTotalFormatado = `${precoTotal} €`;
         const venda = new newVenda({
           produto: produtoExistente._id,
           quantidade: quantidade,
-          cliente: cliente,
+          cliente: clienteID,
           data: Date.now(),
           totalPreço: precoTotalFormatado,
         });
-        produtoExistente.quantidadeDisponivel -= quantidade;
-        await produtoExistente.save();
 
-        console.log("Venda:", venda);
+        stock.quantity -= quantidade;
+
+        await stock.save();
+        await produtoExistente.save();
         const novaVenda = await venda.save();
 
-        vendaController.RelatorioVenda(novaVenda);
+        RelatorioVenda(novaVenda);
+        createAlert(produtoExistente._id);
 
         res.status(201).json(novaVenda);
+
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Erro ao processar a encomenda" });
+        res.status(500).json({ message: error.message });
       }
-    };
   };
 
   return {

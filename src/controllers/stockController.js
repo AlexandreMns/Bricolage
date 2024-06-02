@@ -1,5 +1,5 @@
-const Stock = require("../models/stockModel");
-const Product = require("../models/productModel");
+const Stock = require("../models/stock");
+const Product = require("../models/produto");
 
 // Add Stock Entry
 const addStockEntry = async (req, res) => {
@@ -11,10 +11,9 @@ const addStockEntry = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-
-    const stock = new Stock({ product: productId, quantityAvailable });
+    const stockExists = await Stock.findOne({ product : productId });
+    const stock = new Stock({ product: productId, quantity: quantityAvailable });
     const newStock = await stock.save();
-
     res.status(201).json(newStock);
   } catch (error) {
     res.status(400).json({ message: error.message });

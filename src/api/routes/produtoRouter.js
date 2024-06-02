@@ -3,26 +3,13 @@ const Product = require("../../models/produto");
 const UserModel = require("../../controllers/userController");
 const Produto = require("../../controllers/produtoControler");
 const verifyToken = require("../../middlewares/verifyToken");
-const path = require("path");
-const multer = require("multer");
+const upload = require("../../middlewares/upload");
 const authorize = require("../../middlewares/authorize");
-const UserController = require("../../controllers/userController");
 const scopes = require("../../models/scopes");
 
 const ProdutoControler = Produto(Product);
 
 const router = express.Router();
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.join(__dirname, "../../uploads/produtos/"));
-    },
-    filename: function (req, file, cb) {
-      cb(null, `${Date.now()}-${file.originalname}`);
-    },
-  }),
-});
 
 //Conseguir Produtos
 router.get("/all", ProdutoControler.findAll);
@@ -64,18 +51,7 @@ router.delete(
   "/delete/:id",
   verifyToken,
   authorize([scopes["Administrador"]]),
-  (req, res, next) => {
-    ProdutoControler.removeById(req.params.id)
-      .then(() => {
-        res.status(200);
-        res.send("Produto deletado");
-        next();
-      })
-      .catch((err) => {
-        res.status(404);
-        next();
-      });
-  }
+  ProdutoControler.productDelete
 );
 
 module.exports = router;

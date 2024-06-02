@@ -1,6 +1,6 @@
 const Produto = require("../models/produto");
-const ProdutoModel = require("../models/produto");
-const path = require("path");
+const Categoria = require("../models/categoria");
+const Stock = require("../models/stock");
 
 function ProdutoController(ProdutoModel) {
   // MUdar find All
@@ -14,9 +14,9 @@ function ProdutoController(ProdutoModel) {
 
       let sortOption = {};
       if (sortBy === "asc") {
-        sortOption = { preço: 1 };
+        sortOption = { price: 1 };
       } else if (sortBy === "desc") {
-        sortOption = { preço: -1 };
+        sortOption = { price: -1 };
       }
       const data = await ProdutoModel.find(filtro).sort(sortOption);
       const produtos = data.map((data) => {
@@ -24,8 +24,8 @@ function ProdutoController(ProdutoModel) {
           id: data._id,
           titulo: data.titulo,
           categoria: data.categoria,
-          descrição: data.descrição,
-          preço: data.preço,
+          description: data.description,
+          price: data.price,
           quantidadeMinima: data.quantidadeMinima,
           imagem: data.imagem,
         };
@@ -67,30 +67,50 @@ function ProdutoController(ProdutoModel) {
         .catch((err) => reject(err));
     });
   }
+  const productDelete = async (req, res, next) => {
+    try {
+      const id = req.params.id;
+      const product = await findById(id);
+      if (!product) {
+        res.status(404);
+        res.send("Produto não encontrado");
+      } else {
+        await removeById(id);
+        await Stock.deleteMany({ produto: id });
+        
+        res.status(204).json("Produto deletado com sucesso");
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({ message: "Erro ao deletar produto" });
+      next(err);
+    }
+  }
 
   const create = async (req, res, next) => {
     try {
-      const { titulo, categoria, descrição, preço, quantidadeMinima } =
+      const { titulo, categoria, description, price, quantidadeMinima } =
         req.body;
       const imagem = req.file;
+
+      const categoryExists = await Categoria.findById(categoria);
+      if (!categoryExists) {
+        return res.status(400).json({ message: "Invalid category" });
+      }
 
       let newProduct = new ProdutoModel({
         titulo,
         categoria,
-        descrição,
-        preço,
+        description,
+        price,
         quantidadeMinima,
-        imagem,
+        imagem: imagem.path,
       });
-      console.log("Produto:", JSON.stringify(req.body));
+
       await save(newProduct);
 
-      if (imagem) {
-        const FileName = newProduct._id + path.extname(imagem.originalname);
-        newProduct.imagem = FileName;
-        await newProduct.save();
-      }
-      res.status(201).send("Produto criado \n" + newProduct);
+      console.log("Produto:", JSON.stringify(req.body));
+      res.status(201).send( newProduct);
     } catch (err) {
       console.log(err);
       res.status(500).send({ message: "Erro ao criar produto" });
@@ -131,6 +151,7 @@ function ProdutoController(ProdutoModel) {
     findById,
     update,
     removeById,
+    productDelete,
   };
 }
 

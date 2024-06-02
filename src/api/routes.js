@@ -17,8 +17,12 @@ const routes = [
   },
   {
     path: "/categoria",
-    router: require("./routes/categoriaRouter"),
+    router: require("./routes/categoryRouter"),
   },
+  {
+    path: "/alert/",
+    router: require("./routes/alertRouter"),
+  }
 ];
 
 module.exports = routes;

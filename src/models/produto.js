@@ -10,11 +10,11 @@ const ProdutoSchema = new mongoose.Schema({
     ref: "Categoria",
     required: true,
   },
-  descrição: {
+  description: {
     type: String,
     required: true,
   },
-  preço: {
+  price: {
     type: Number,
     required: true,
   },

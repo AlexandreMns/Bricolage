@@ -1,9 +1,6 @@
-const jwt = require("jsonwebtoken");
 const { config } = require("../config");
-const { Error } = require("../utils/catchError");
 const bcrypt = require("bcrypt");
-const path = require("path");
-const multer = require("multer");
+const { decodeToken, comparePassword, createToken } = require("../utils/TokenUtil");
 const { sendMail } = require("../service/emailConfig");
 const UserModel = require("../models/user");
 const { EmailType } = require("../utils/emailType");
@@ -16,7 +13,7 @@ function UserController() {
       const imagem = req.file;
       console.log("Body " + JSON.stringify(req.body));
 
-      const userExists = await User.findOne({ email: email });
+      const userExists = await User.findOne({ email: email })
       if (userExists) {
         return next("User already exists");
       }
@@ -25,17 +22,11 @@ function UserController() {
         name,
         email,
         password: hashPassword,
+        imagem: imagem.path,
       });
       user.role = { name: "Cliente", scopes: ["Cliente"] };
       await save(user);
-
-      if (imagem) {
-        const FileName = user._id + path.extname(imagem.originalname);
-
-        user.imagem = FileName;
-        await user.save();
-      }
-
+    
       const token = createToken(user, config.expiresIn);
 
       res.status(201).json({ token: token.token });
@@ -45,6 +36,7 @@ function UserController() {
       next(err);
     }
   };
+
 
   function createPassword(user) {
     return bcrypt.hash(user.password, config.saltRounds);
@@ -99,9 +91,11 @@ function UserController() {
   const Update = async (req, res, next) => {
     try {
       //Não funciona se for so a mudar um parametro
+      // IDEIA - poderia tirar os ifs fazendo assim com que o user pode mudar um so parametro sendo que o resto fica igual
       const token = req.headers["x-access-token"];
       const decoded = await decodeToken(token);
       const { id } = decoded.id;
+      const imagem = req.file;
       const NewUser = req.body;
 
       const user = await User.findOne({ id: id });
@@ -111,6 +105,10 @@ function UserController() {
       }
       if (NewUser.telefone === user.telefone) {
         return res.status(409).json({ message: "Telefone is the same" });
+      }
+
+      if(imagem.path === user.imagem){
+        return res.status(409).json({ message: "Imagem is the same" });
       }
 
       const UpdatedUser = await User.findOneAndUpdate({ id: id }, NewUser, {
@@ -128,17 +126,6 @@ function UserController() {
       next(err);
     }
   };
-
-  function createToken(user) {
-    let token = jwt.sign(
-      { id: user._id, name: user.name, role: user.role.scopes },
-      config.secret,
-      {
-        expiresIn: config.expiresIn,
-      }
-    );
-    return { auth: true, token: token };
-  }
 
   function findUser({ email, password }) {
     return new Promise(function (resolve, reject) {
@@ -173,25 +160,6 @@ function UserController() {
       next(err);
     }
   };
-
-  function comparePassword(password, hash) {
-    return bcrypt.compare(password, hash);
-  }
-
-  function decodeToken(token) {
-    return new Promise((resolve, reject) => {
-      jwt.verify(token, config.secret, (err, decoded) => {
-        if (err) {
-          reject();
-        }
-        return resolve(decoded);
-      });
-    });
-  }
-  // Fazer email funcionar com nodemailer
-  function findUserByEmail(email) {
-    return usersDatabase.find((user) => user.email === email);
-  }
 
   const forgotPassword = async (req, res, next) => {
     try {
@@ -251,15 +219,13 @@ function UserController() {
   };
   return {
     create,
-    createToken,
-    decodeToken,
     Login,
+    User,
     resetPassword,
     findUser,
     UserInfo,
     createPassword,
     findAll,
-    findUserByEmail,
     forgotPassword,
     Update,
   };

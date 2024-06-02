@@ -4,23 +4,11 @@ const UserModel = require("../../models/user");
 const authorize = require("../../middlewares/authorize");
 const verifyToken = require("../../middlewares/verifyToken");
 const scopes = require("../../models/scopes");
-const Validator = require("../../middlewares/validator");
-const path = require("path");
+const upload = require("../../middlewares/upload");
 const multer = require("multer");
 const userController = UserController(UserModel);
 
 const router = express.Router();
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.join(__dirname, "../../uploads/users/"));
-    },
-    filename: function (req, file, cb) {
-      cb(null, `${Date.now()}-${file.originalname}`);
-    },
-  }),
-});
 
 //Register
 router.post("/register", upload.single("imagem"), userController.create);

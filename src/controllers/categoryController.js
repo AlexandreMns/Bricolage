@@ -1,4 +1,4 @@
-const Category = require("../models/categoryModel");
+const Category = require("../models/categoria");
 
 // Create Category
 const createCategory = async (req, res) => {
@@ -17,6 +17,7 @@ const createCategory = async (req, res) => {
     }
 
     const category = new Category({ name, description });
+    console.log(category)
     const newCategory = await category.save();
     res.status(201).json(newCategory);
   } catch (error) {
@@ -75,7 +76,7 @@ const getAllCategories = async (req, res) => {
     if (!categories || categories.length === 0) {
       return res.status(404).json({ message: "No categories found" });
     }
-    res.json(categories);
+    res.status(200).json(categories)
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
