@@ -25,9 +25,10 @@ const getStockEntriesForProduct = async (req, res) => {
   const { productId } = req.params;
 
   try {
-    const stockEntries = await Stock.find({ product: productId }).populate(
-      "product"
-    );
+    const stockEntries = await Stock.find()
+    for (let i = 0; i < stockEntries.length; i++) {
+      const product = await Product.findById(stockEntries[i].product);
+    }
     res.json(stockEntries);
   } catch (error) {
     res.status(500).json({ message: error.message });

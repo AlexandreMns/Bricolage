@@ -1,22 +1,4 @@
 const Alert = require('../models/alert');
-const Stock = require('../models/stock');
-const Product = require('../models/produto');
-const { createAlert } = require('../service/alertConfig');
-
-/*
-const manageAlert = async (req, res ,next ) => {
-    try {
-        const productId = req.params.productId;
-        const product = await Product.findById(productId);
-        if (!product) {
-            throw new Error('Produto não encontrado');
-        }
-        createAlert(productId);
-        res.status(200).send('Alerta gerenciado com sucesso');
-    } catch (error) {
-        console.error('Erro ao gerenciar o alerta:', error);
-    }
-}*/
 
 const getAllAlerts = async (req, res, next) => {
     try {
@@ -53,7 +35,6 @@ const deleteAlert = async (req, res, next) => {
 
 
 module.exports = {
-    //manageAlert,
     getAllAlerts,
     deleteAlert,
 };

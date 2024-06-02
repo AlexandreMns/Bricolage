@@ -94,7 +94,7 @@ function VendaController(VendaModel) {
           return res.status(400).json({ message: "Produto não encontrado" });
         }
 
-        let stock = await Stock.findOne({ product : id });
+        let stock = await Stock.findOne({ product : id, quantity: { $gt: 0 }});
         // Verificar se há quantidade suficiente disponível
         if (quantidade > stock.quantity) {
           return res
@@ -120,7 +120,9 @@ function VendaController(VendaModel) {
         const novaVenda = await venda.save();
 
         RelatorioVenda(novaVenda);
-        createAlert(produtoExistente._id);
+        if (stock.quantity < produtoExistente.quantidadeMinima){
+          createAlert(produtoExistente._id);
+        }
 
         res.status(201).json(novaVenda);
 

@@ -76,8 +76,12 @@ function ProdutoController(ProdutoModel) {
         res.send("Produto não encontrado");
       } else {
         await removeById(id);
-        await Stock.deleteMany({ produto: id });
-        
+        const stock = await Stock.find();
+
+        for (let i = 0; i < stock.length; i++) {
+          await Stock.findOneAndDelete({ product: id });
+        }
+
         res.status(204).json("Produto deletado com sucesso");
       }
     } catch (err) {

@@ -10,13 +10,8 @@ const createAlert = async (productId) => {
         }
 
         const stock = await Stock.findOne({ product: productId });
-        let status = 'inactive';
-        let message = `Estoque suficiente: ${stock.quantity}`;
-
-        if (stock.quantity < product.quantidadeMinima) {
-            status = 'active';
-            message = `Estoque baixo: ${stock.quantity}`;
-        }
+        let status = 'active';
+        let message = `Estoque baixo: ${stock.quantity}`;
 
         const alert = await Alert.findOneAndUpdate(
             { product: productId },
