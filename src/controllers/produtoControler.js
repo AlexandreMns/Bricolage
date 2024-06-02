@@ -1,6 +1,7 @@
 const Produto = require("../models/produto");
 const Categoria = require("../models/categoria");
 const Stock = require("../models/stock");
+const Alert = require("../models/alert");
 
 function ProdutoController(ProdutoModel) {
   // MUdar find All
@@ -77,11 +78,16 @@ function ProdutoController(ProdutoModel) {
       } else {
         await removeById(id);
         const stock = await Stock.find();
+        const alerts = await Alert.find();
 
         for (let i = 0; i < stock.length; i++) {
           await Stock.findOneAndDelete({ product: id });
         }
 
+        for (let i = 0; i < alerts.length; i++) {
+          await Alert.findOneAndDelete({ product: id });
+        }
+        
         res.status(204).json("Produto deletado com sucesso");
       }
     } catch (err) {

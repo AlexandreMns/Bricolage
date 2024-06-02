@@ -95,6 +95,11 @@ function VendaController(VendaModel) {
         }
 
         let stock = await Stock.findOne({ product : id, quantity: { $gt: 0 }});
+
+        //Ver se existe produtos em stock
+        if (!stock || stock.quantity === null) {
+          return res.status(400).json({ message: "Stock inválido ou não disponível" });
+        }
         // Verificar se há quantidade suficiente disponível
         if (quantidade > stock.quantity) {
           return res
