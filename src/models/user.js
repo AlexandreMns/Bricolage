@@ -39,6 +39,10 @@ const UserSchema = new mongoose.Schema({
   resetPasswordExpires: {
     type: Date,
   },
+  carrinho: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Carrinho",
+  },
 });
 
 const User = mongoose.model("User", UserSchema);

@@ -1,10 +1,16 @@
 const { config } = require("../config");
 const bcrypt = require("bcrypt");
-const { decodeToken, comparePassword, createToken } = require("../utils/TokenUtil");
+const {
+  decodeToken,
+  comparePassword,
+  createToken,
+} = require("../utils/TokenUtil");
+const { createCarrinho } = require("../service/cartConfig");
 const { sendMail } = require("../service/emailConfig");
 const UserModel = require("../models/user");
 const { EmailType } = require("../utils/emailType");
 const User = require("../models/user");
+const { ShoppingCart, CartItem } = require("../models/carrinho");
 
 function UserController() {
   const create = async (req, res, next) => {
@@ -13,20 +19,28 @@ function UserController() {
       const imagem = req.file;
       console.log("Body " + JSON.stringify(req.body));
 
-      const userExists = await User.findOne({ email: email })
+      const userExists = await User.findOne({ email: email });
       if (userExists) {
         return next("User already exists");
       }
       const hashPassword = await bcrypt.hash(password, config.saltRounds);
+      const newCart = new ShoppingCart({
+        items: [],
+        total: 0,
+      });
+
       const user = new UserModel({
         name,
         email,
         password: hashPassword,
         imagem: imagem.path,
+        carrinho: newCart,
       });
+
       user.role = { name: "Cliente", scopes: ["Cliente"] };
+
+      await newCart.save();
       await save(user);
-    
       const token = createToken(user, config.expiresIn);
 
       res.status(201).json({ token: token.token });
@@ -36,7 +50,6 @@ function UserController() {
       next(err);
     }
   };
-
 
   function createPassword(user) {
     return bcrypt.hash(user.password, config.saltRounds);
@@ -70,6 +83,7 @@ function UserController() {
         telefone: Data.telefone,
         role: Data.role.name,
         imagem: Data.imagem,
+        carrinho: Data.carrinho,
       };
       res.status(202).send(User);
     } catch (err) {
@@ -107,7 +121,7 @@ function UserController() {
         return res.status(409).json({ message: "Telefone is the same" });
       }
 
-      if(imagem.path === user.imagem){
+      if (imagem.path === user.imagem) {
         return res.status(409).json({ message: "Imagem is the same" });
       }
 

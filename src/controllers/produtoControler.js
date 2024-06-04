@@ -87,7 +87,7 @@ function ProdutoController(ProdutoModel) {
         for (let i = 0; i < alerts.length; i++) {
           await Alert.findOneAndDelete({ product: id });
         }
-        
+
         res.status(204).json("Produto deletado com sucesso");
       }
     } catch (err) {
@@ -95,13 +95,17 @@ function ProdutoController(ProdutoModel) {
       res.status(500).send({ message: "Erro ao deletar produto" });
       next(err);
     }
-  }
+  };
 
   const create = async (req, res, next) => {
     try {
       const { titulo, categoria, description, price, quantidadeMinima } =
         req.body;
       const imagem = req.file;
+
+      if (!imagem) {
+        return res.status(400).json({ message: "Image file is required" });
+      }
 
       const categoryExists = await Categoria.findById(categoria);
       if (!categoryExists) {
@@ -120,7 +124,7 @@ function ProdutoController(ProdutoModel) {
       await save(newProduct);
 
       console.log("Produto:", JSON.stringify(req.body));
-      res.status(201).send( newProduct);
+      res.status(201).send(newProduct);
     } catch (err) {
       console.log(err);
       res.status(500).send({ message: "Erro ao criar produto" });
@@ -154,6 +158,10 @@ function ProdutoController(ProdutoModel) {
         .catch((err) => reject(err));
     });
   }
+
+  /*const AddCarrinho = async (req, res, next) => {
+    //Função addicionar ao carrinho
+  };*/
   return {
     create,
     findOne,
@@ -162,6 +170,7 @@ function ProdutoController(ProdutoModel) {
     update,
     removeById,
     productDelete,
+    //AddCarrinho,
   };
 }
 
