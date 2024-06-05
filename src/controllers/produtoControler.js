@@ -122,6 +122,14 @@ function ProdutoController(ProdutoModel) {
       });
 
       await save(newProduct);
+      await Alert.create({
+        product: newProduct._id,
+        message: "Produto criado com sucesso, mas sem stock",
+        stock: 0,
+        quantity: 0,
+        status: "active",
+        createdAt: new Date(),
+      });
 
       console.log("Produto:", JSON.stringify(req.body));
       res.status(201).send(newProduct);
