@@ -1,6 +1,7 @@
 // Importa o model
 const Relatorio = require("../models/relatorio");
 const Product = require("../models/produto");
+const { ShoppingCart, CartItem } = require("../models/carrinho");
 const newVenda = require("../models/venda");
 const Stock = require("../models/stock");
 const { createAlert } = require("../service/alertConfig");
@@ -55,11 +56,8 @@ function VendaController(VendaModel) {
       const vendas = data.map((data) => {
         return {
           id: data._id,
-          produto: data.produto,
-          quantidade: data.quantidade,
-          cliente: data.cliente,
+          carrinho: data.carrinho,
           data: data.data,
-          totalPreço: data.totalPreço,
         };
       });
       res.status(200).json(vendas);
@@ -70,74 +68,101 @@ function VendaController(VendaModel) {
 
   const CriarVenda = async (req, res, next) => {
     try {
-      const { id, quantidade } = req.body;
-
       let token = req.headers["x-access-token"];
       if (!token) {
         return res
           .status(400)
           .send({ auth: false, message: "No token provided" });
       }
-      console.log();
       const decoded = await decodeToken(token);
       const clienteID = decoded.id;
+      const user = await User.findOne({ _id: clienteID });
+      const CartUser = await ShoppingCart.findById({ _id: user.carrinho });
 
-      const cliente = User.findOne({ _id: clienteID });
-
-      // Verificar se o produto existe
-      const produtoExistente = await Product.findOne({
-        _id: id,
-      });
-
-      if (!produtoExistente) {
-        return res.status(400).json({ message: "Produto não encontrado" });
+      if (!CartUser) {
+        return res.status(400).send({ message: "Carrinho vazio" });
       }
 
-      let stock = await Stock.findOne({ product: id, quantity: { $gt: 0 } });
+      for (let i = 0; i < CartUser.items.length; i++) {
+        let id = CartUser.items[i].product._id;
+        let product = await Product.findById(id);
+        let quantidade = CartUser.items[i].quantity;
 
-      //Ver se existe produtos em stock
-      if (!stock || stock.quantity === null) {
-        return res
-          .status(400)
-          .json({ message: "Stock inválido ou não disponível" });
-      }
-      // Verificar se há quantidade suficiente disponível
-      if (quantidade > stock.quantity) {
-        return res
-          .status(400)
-          .json({ message: "Quantidade disponível insuficiente " });
+        let stocks = await Stock.find({
+          product: id,
+          quantity: { $gt: 0 },
+        });
+
+        if (!stocks || stocks.length === 0) {
+          return res.status(400).json({
+            message: "Nenhum estoque disponível para o produto " + id,
+          });
+        }
+
+        // Calcular a quantidade total disponível no estoque
+        let totalAvailable = stocks.reduce(
+          (acc, stock) => acc + stock.quantity,
+          0
+        );
+
+        // Verificar se a quantidade total disponível é suficiente
+        if (quantidade > totalAvailable) {
+          return res.status(400).json({
+            message:
+              "Quantidade disponível insuficiente para o produto " +
+              id +
+              ". Disponível: " +
+              totalAvailable,
+          });
+        }
+
+        // Deduzir a quantidade necessária dos registros de estoque na ordem apropriada (FIFO)
+        let remainingQuantity = quantidade;
+        for (let stock of stocks) {
+          if (remainingQuantity <= 0) break;
+
+          if (stock.quantity >= remainingQuantity) {
+            stock.quantity -= remainingQuantity;
+            remainingQuantity = 0;
+          } else {
+            remainingQuantity -= stock.quantity;
+            stock.quantity = 0;
+          }
+          await stock.save();
+
+          if (stock.quantity < product.quantidadeMinima) {
+            createAlert(product._id);
+          }
+        }
       }
 
       // Criar a encomenda
-      const precoTotal = produtoExistente.price * quantidade;
-      const precoTotalFormatado = `${precoTotal} €`;
+      const total = CartUser.total;
       const venda = new newVenda({
-        produto: produtoExistente._id,
-        quantidade: quantidade,
         cliente: clienteID,
+        carrinho: CartUser,
         data: Date.now(),
-        totalPreço: precoTotalFormatado,
+        totalPrice: total,
       });
-
-      stock.quantity -= quantidade;
-
-      await stock.save();
-      await produtoExistente.save();
-      const novaVenda = await venda.save();
+      await venda.save();
 
       const relatorio = new Relatorio({
-        produto: produtoExistente._id,
-        quantidade: quantidade,
-        cliente: clienteID,
         data: Date.now(),
-        totalPreço: precoTotal,
+        venda: venda._id,
+        price: venda.totalPreço,
+        relatorio: "Venda",
       });
-      save(relatorio);
-      if (stock.quantity < produtoExistente.quantidadeMinima) {
-        createAlert(produtoExistente._id);
+
+      for (let i = 0; i < CartUser.items.length; i++) {
+        let item = CartUser.items[i]._id;
+        const cartItem = await CartItem.findById(item);
+        await cartItem.deleteOne();
       }
 
-      res.status(201).json(novaVenda);
+      await relatorio.save();
+      await CartUser.deleteOne();
+
+      res.status(201).json(venda);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: error.message });
