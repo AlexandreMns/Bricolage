@@ -22,7 +22,11 @@ const routes = [
   {
     path: "/alert/",
     router: require("./routes/alertRouter"),
-  }
+  },
+  {
+    path: "/cart",
+    router: require("./routes/cartRouter"),
+  },
 ];
 
 module.exports = routes;

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { shoppingCartSchema } = require("./carrinho");
 
 const VendaSchema = new mongoose.Schema({
   cliente: {
@@ -6,21 +7,14 @@ const VendaSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  produto: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Produto",
-    required: true,
-  },
-  quantidade: {
-    type: Number,
-    required: true,
-  },
+  carrinho: [shoppingCartSchema],
   data: {
     type: Date,
     default: Date.now,
   },
-  totalPreço: {
-    type: String,
+  totalPrice: {
+    type: Number,
+    default: 0,
   },
 });
 

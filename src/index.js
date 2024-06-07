@@ -1,6 +1,4 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const config = require("./config");
 const path = require("path");
 const routes = require("./api/routes");
 const dotenv = require("dotenv");
