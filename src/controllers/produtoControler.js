@@ -1,16 +1,17 @@
 const Produto = require("../models/produto");
 const Categoria = require("../models/categoria");
 const Stock = require("../models/stock");
+const mongoose = require("mongoose");
 const Alert = require("../models/alert");
 
 function ProdutoController(ProdutoModel) {
   // MUdar find All
   const findAll = async (req, res, next) => {
     try {
-      let filtro = {};
-      const { sortBy, titulo } = req.query;
+      let query = {};
+      const { page, limit ,sortBy, titulo } = req.query;
       if (titulo) {
-        filtro.titulo = { $regex: titulo, $options: "i" };
+        query.titulo = { $regex: titulo, $options: "i" };
       }
 
       let sortOption = {};
@@ -19,25 +20,34 @@ function ProdutoController(ProdutoModel) {
       } else if (sortBy === "desc") {
         sortOption = { price: -1 };
       }
-      const data = await ProdutoModel.find(filtro).sort(sortOption);
-      const produtos = data.map((data) => {
-        return {
-          id: data._id,
-          titulo: data.titulo,
-          categoria: data.categoria,
-          description: data.description,
-          price: data.price,
-          quantidadeMinima: data.quantidadeMinima,
-          imagem: data.imagem,
-        };
-      });
 
-      if (produtos.lengths === 0) {
-        res.status(404);
-        res.send("Nenhum produto encontrado");
-      } else {
-        res.status(200);
-        res.send(produtos);
+      if(sortBy){
+        const produtos = await Produto.find(query)
+        .sort(sortBy)
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+
+        const total = await Produto.countDocuments(query);
+  
+      res.json({
+        produtos,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+      });
+      }else{
+        const produtos = await Produto.find(query)
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+
+        const total = await Produto.countDocuments(query);
+        
+      res.json({
+        produtos,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+      });
       }
     } catch (err) {
       console.log(err);
@@ -167,10 +177,54 @@ function ProdutoController(ProdutoModel) {
         .catch((err) => reject(err));
     });
   }
+/*
+  const ProductsWithFilters = async (req, res, next) => {
+      const { page = 1, limit = 10, sort = "titulo", search } = req.query;
+      try {
+        const query = {};
 
-  /*const AddCarrinho = async (req, res, next) => {
-    //Função addicionar ao carrinho
-  };*/
+
+        if (search) {
+          const regex = new RegExp(search, "i");
+          if (mongoose.Types.ObjectId.isValid(search)) {
+            query._id = search;
+          } else {
+            query.$or = [{ titulo: regex }, { categoria: regex }];
+          }
+        }
+        if(sort){
+          const produtos = await Produto.find(query)
+          .sort(sort)
+          .skip((page - 1) * limit)
+          .limit(parseInt(limit));
+  
+          const total = await Produto.countDocuments(query);
+    
+        res.json({
+          produtos,
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / limit),
+        });
+        }else{
+          const produtos = await Produto.find(query)
+          .skip((page - 1) * limit)
+          .limit(parseInt(limit));
+  
+          const total = await Produto.countDocuments(query);
+    
+        res.json({
+          produtos,
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / limit),
+        });
+        }
+      }catch(err){
+        next(err);
+      }
+    };
+*/
   return {
     create,
     findOne,
@@ -179,7 +233,7 @@ function ProdutoController(ProdutoModel) {
     update,
     removeById,
     productDelete,
-    //AddCarrinho,
+    //ProductsWithFilters,
   };
 }
 

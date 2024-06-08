@@ -1,11 +1,12 @@
 const { config } = require("../config");
 const bcrypt = require("bcrypt");
+const Wishlist = require("../models/wishlist");
+const mongoose = require("mongoose");
 const {
   decodeToken,
   comparePassword,
   createToken,
 } = require("../utils/TokenUtil");
-const { createCarrinho } = require("../service/cartConfig");
 const { sendMail } = require("../service/emailConfig");
 const UserModel = require("../models/user");
 const { EmailType } = require("../utils/emailType");
@@ -41,6 +42,7 @@ function UserController() {
 
       await newCart.save();
       await save(user);
+      await Wishlist.create({ cliente: user._id, produtos: [] });
       const token = createToken(user, config.expiresIn);
 
       res.status(201).json({ token: token.token });
@@ -197,6 +199,56 @@ function UserController() {
     }
   };
 
+  const UserWithFilters = async (req, res, next) => {
+    const { page = 1, limit = 10, sort = "name", role, search } = req.query;
+    try {
+      const query = {};
+
+      if (role) {
+        query["role.name"] = role;
+      }
+
+      if (search) {
+        const regex = new RegExp(search, "i");
+        if (mongoose.Types.ObjectId.isValid(search)) {
+          query._id = search;
+        } else {
+          query.$or = [{ name: regex }, { email: regex }];
+        }
+      }
+      if(sort){
+        const users = await User.find(query)
+        .sort(sort)
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+
+        const total = await User.countDocuments(query);
+  
+      res.json({
+        users,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+      });
+      }else{
+        const users = await User.find(query)
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+
+        const total = await User.countDocuments(query);
+  
+      res.json({
+        users,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+      });
+      }
+    }catch(err){
+      next(err);
+    }
+  };
+
   const resetPassword = async (req, res, next) => {
     try {
       const { newPassword, confirmPassword } = req.body;
@@ -242,6 +294,7 @@ function UserController() {
     findAll,
     forgotPassword,
     Update,
+    UserWithFilters,
   };
 }
 

@@ -12,7 +12,7 @@ const ProdutoControler = Produto(Product);
 const router = express.Router();
 
 //Conseguir Produtos
-router.get("/all", ProdutoControler.findAll);
+router.get("/all", verifyToken, ProdutoControler.findAll);
 
 //Criar Produto
 router.post(

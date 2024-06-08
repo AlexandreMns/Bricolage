@@ -22,8 +22,9 @@ router.get(
   verifyToken,
   authorize([scopes["Cliente"], scopes["Administrador"]]),
   userController.UserInfo
-);
+); 
 
+//Eliminar rota de todos os utilizadores
 //Todos os clientes
 router.get(
   "/AllUsers",
@@ -31,6 +32,9 @@ router.get(
   authorize([scopes["Administrador"]]),
   userController.findAll
 );
+
+//User with filters
+router.get("/list", verifyToken, authorize([scopes["Administrador"]]) ,  userController.UserWithFilters);
 
 //Alterar utilizador
 router.put("/profile/", verifyToken, userController.Update);

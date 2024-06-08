@@ -3,7 +3,6 @@ const Carrinho = require("../models/carrinho");
 const { decodeToken } = require("../utils/TokenUtil");
 const User = require("../models/user");
 const Stock = require("../models/stock");
-const { AddToCart, createCarrinho } = require("../service/cartConfig");
 const Product = require("../models/produto");
 
 const getCart = async (req, res, next) => {

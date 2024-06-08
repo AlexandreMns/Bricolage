@@ -27,6 +27,10 @@ const routes = [
     path: "/cart",
     router: require("./routes/cartRouter"),
   },
+  {
+    path: "/wishlist",
+    router: require("./routes/wishlistRouter"),
+  }
 ];
 
 module.exports = routes;
