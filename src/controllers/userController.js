@@ -255,9 +255,6 @@ function UserController() {
       const token = req.headers["x-access-token"];
       const decoded = await decodeToken(token);
       const user = await User.findOne({ _id: decoded.id });
-      if (token != user.resetPasswordToken) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-      }
 
       if (newPassword !== confirmPassword) {
         return next("Passwords don't match");

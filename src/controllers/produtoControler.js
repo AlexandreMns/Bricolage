@@ -177,54 +177,6 @@ function ProdutoController(ProdutoModel) {
         .catch((err) => reject(err));
     });
   }
-/*
-  const ProductsWithFilters = async (req, res, next) => {
-      const { page = 1, limit = 10, sort = "titulo", search } = req.query;
-      try {
-        const query = {};
-
-
-        if (search) {
-          const regex = new RegExp(search, "i");
-          if (mongoose.Types.ObjectId.isValid(search)) {
-            query._id = search;
-          } else {
-            query.$or = [{ titulo: regex }, { categoria: regex }];
-          }
-        }
-        if(sort){
-          const produtos = await Produto.find(query)
-          .sort(sort)
-          .skip((page - 1) * limit)
-          .limit(parseInt(limit));
-  
-          const total = await Produto.countDocuments(query);
-    
-        res.json({
-          produtos,
-          total,
-          page: parseInt(page),
-          pages: Math.ceil(total / limit),
-        });
-        }else{
-          const produtos = await Produto.find(query)
-          .skip((page - 1) * limit)
-          .limit(parseInt(limit));
-  
-          const total = await Produto.countDocuments(query);
-    
-        res.json({
-          produtos,
-          total,
-          page: parseInt(page),
-          pages: Math.ceil(total / limit),
-        });
-        }
-      }catch(err){
-        next(err);
-      }
-    };
-*/
   return {
     create,
     findOne,
@@ -233,7 +185,6 @@ function ProdutoController(ProdutoModel) {
     update,
     removeById,
     productDelete,
-    //ProductsWithFilters,
   };
 }
 

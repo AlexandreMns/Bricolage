@@ -43,7 +43,6 @@ router.put("/profile/", verifyToken, userController.Update);
 router.put(
   "/resetpassword",
   verifyToken,
-  //Validator("resetPassword"),
   userController.resetPassword
 );
 
