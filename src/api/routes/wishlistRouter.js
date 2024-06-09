@@ -19,7 +19,7 @@ router.post('/create', verifyToken, createWishlist);
 router.get('/get', verifyToken, getWishlist);
 
 // Remove from Wishlist
-router.delete('/remove/:id', verifyToken, removeFromWishList);
+router.delete('/remove/:productID', verifyToken, removeFromWishList);
 
 // Add to Wishlist
 router.post('/add/:productID', verifyToken, addToWishlist);
