@@ -43,7 +43,8 @@ const AddCarrinho = async (req, res, next) => {
     const user = await User.findOne({ _id: Decoded.id });
     const carrinho = user.carrinho;
     const CarrinhoUser = await ShoppingCart.findById(carrinho);
-    const productExist = await Product.findById(productID);
+    console.log(productID);
+    const productExist = await Product.findOne({ _id: productID });
     const stock = await Stock.findOne({ product: productID });
     if (!productExist) {
       return res.status(404).send("Produto não encontrado");

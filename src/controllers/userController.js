@@ -119,12 +119,15 @@ function UserController() {
       if (NewUser.name === user.name) {
         return res.status(409).json({ message: "Name is the same" });
       }
-      if (NewUser.telefone === user.telefone) {
-        return res.status(409).json({ message: "Telefone is the same" });
+      if (user.telefone) {
+        if (NewUser.telefone === user.telefone) {
+          return res.status(409).json({ message: "Telefone is the same" });
+        }
       }
-
-      if (imagem.path === user.imagem) {
-        return res.status(409).json({ message: "Imagem is the same" });
+      if (!imagem === undefined) {
+        if (imagem.path === user.imagem) {
+          return res.status(409).json({ message: "Imagem is the same" });
+        }
       }
 
       const UpdatedUser = await User.findOneAndUpdate({ id: id }, NewUser, {
@@ -216,35 +219,35 @@ function UserController() {
           query.$or = [{ name: regex }, { email: regex }];
         }
       }
-      if(sort){
+      if (sort) {
         const users = await User.find(query)
-        .sort(sort)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+          .sort(sort)
+          .skip((page - 1) * limit)
+          .limit(parseInt(limit));
 
         const total = await User.countDocuments(query);
-  
-      res.json({
-        users,
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-      });
-      }else{
+
+        res.json({
+          users,
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / limit),
+        });
+      } else {
         const users = await User.find(query)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
+          .skip((page - 1) * limit)
+          .limit(parseInt(limit));
 
         const total = await User.countDocuments(query);
-  
-      res.json({
-        users,
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-      });
+
+        res.json({
+          users,
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / limit),
+        });
       }
-    }catch(err){
+    } catch (err) {
       next(err);
     }
   };
