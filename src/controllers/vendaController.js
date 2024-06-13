@@ -39,6 +39,15 @@ function VendaController(VendaModel) {
         .catch((err) => reject(err));
     });
   }
+
+  function VendaID(id) {
+    return new Promise(function (resolve, reject) {
+      newVenda
+        .findById(id)
+        .then((venda) => resolve(venda))
+        .catch((err) => reject(err));
+    });
+  }
   function RelatorioVenda(venda) {
     let relatorio = new Relatorio({
       produto: venda.produto._id,
@@ -49,6 +58,21 @@ function VendaController(VendaModel) {
     });
     return save(relatorio);
   }
+
+  const getRelatorio = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const VendaExists = await VendaModel.findById(id);
+      if (!VendaExists) {
+        return res.status(404).send("Venda não encontrada");
+      }
+      const relatorio = await Relatorio.find({ venda: id });
+      res.status(200).json(relatorio);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message });
+    }
+  };
 
   const findAll = async (req, res, next) => {
     try {
@@ -177,6 +201,8 @@ function VendaController(VendaModel) {
     findById,
     RelatorioVenda,
     CriarVenda,
+    VendaID,
+    getRelatorio,
   };
 }
 

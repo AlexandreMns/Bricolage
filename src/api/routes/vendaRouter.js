@@ -20,9 +20,16 @@ router.get(
   "/relatorio/:id",
   verifyToken,
   authorize([scopes["Administrador"], scopes["Cliente"]]),
+  vendaController.getRelatorio
+);
+
+router.get(
+  "/:id",
+  verifyToken,
+  authorize([scopes[("Cliente", scopes["Administrador"])]]),
   (req, res) => {
-    vendaController.findById(req.params.id).then((relatorio) => {
-      res.status(200).send(relatorio);
+    vendaController.VendaID(req.params.id).then((venda) => {
+      res.status(200).send(venda);
     });
   }
 );

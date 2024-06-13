@@ -152,7 +152,7 @@ function UserController() {
         .then((user) => {
           if (!user) return reject("Utilizador não encontrado");
           return comparePassword(password, user.password).then((match) => {
-            if (!match) return reject("User não é válido");
+            if (!match) return reject("Palavra passe errada");
             return resolve(user);
           });
         })
