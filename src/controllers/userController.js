@@ -11,7 +11,9 @@ const { sendMail } = require("../service/emailConfig");
 const UserModel = require("../models/user");
 const { EmailType } = require("../utils/emailType");
 const User = require("../models/user");
+const path = require("path");
 const { ShoppingCart, CartItem } = require("../models/carrinho");
+const { StatusCodes } = require("http-status-codes");
 
 function UserController() {
   const create = async (req, res, next) => {
@@ -34,7 +36,7 @@ function UserController() {
         name,
         email,
         password: hashPassword,
-        imagem: imagem.path,
+        imagem: imagem ? imagem.filename : '',
         carrinho: newCart,
       });
 
@@ -44,8 +46,14 @@ function UserController() {
       await save(user);
       await Wishlist.create({ cliente: user._id, produtos: [] });
       const token = createToken(user, config.expiresIn);
+      const userToken = {
+        token: token.token,
+        user: {
+          role: user.role.name,
+        },
+      };
 
-      res.status(201).json({ token: token.token });
+      res.status(201).json({ userToken });
 
       sendMail(EmailType.Welcome, user.email, res, token.token);
     } catch (err) {
@@ -98,7 +106,13 @@ function UserController() {
       const { email, password } = req.body;
       const user = await findUser({ email, password });
       const token = createToken(user);
-      res.status(200).json(token);
+      const userToken = {
+        token: token.token,
+        user: {
+          role: user.role.name,
+        },
+      };
+      res.status(200).json(userToken);
     } catch (err) {
       next(err);
     }
@@ -106,39 +120,39 @@ function UserController() {
 
   const Update = async (req, res, next) => {
     try {
-      //Não funciona se for so a mudar um parametro
-      // IDEIA - poderia tirar os ifs fazendo assim com que o user pode mudar um so parametro sendo que o resto fica igual
       const token = req.headers["x-access-token"];
       const decoded = await decodeToken(token);
-      const { id } = decoded.id;
+      const userId = decoded.id;
       const imagem = req.file;
       const NewUser = req.body;
-
-      const user = await User.findOne({ id: id });
-
-      if (NewUser.name === user.name) {
-        return res.status(409).json({ message: "Name is the same" });
+      
+      const user = await User.findOne({ _id: userId });
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
-      if (user.telefone) {
-        if (NewUser.telefone === user.telefone) {
-          return res.status(409).json({ message: "Telefone is the same" });
-        }
-      }
-      if (!imagem === undefined) {
-        if (imagem.path === user.imagem) {
-          return res.status(409).json({ message: "Imagem is the same" });
-        }
-      }
-
-      const UpdatedUser = await User.findOneAndUpdate({ id: id }, NewUser, {
-        new: true,
-      });
+  
+      // Atualiza somente os campos fornecidos
+      const updateFields = {};
+      if (NewUser.name) updateFields.name = NewUser.name;
+      if (NewUser.email) updateFields.email = NewUser.email;
+      if (NewUser.telefone) updateFields.telefone = NewUser.telefone;
+      if (imagem) updateFields.imagem = imagem.filename;
+  
+      const UpdatedUser = await User.findOneAndUpdate(
+        { _id: userId },
+        { $set: updateFields },
+        { new: true }
+      );
+  
       const Updated = {
         id: UpdatedUser._id,
         name: UpdatedUser.name,
         email: UpdatedUser.email,
         telefone: UpdatedUser.telefone,
+        imagem: UpdatedUser.imagem,
       };
+      
       res.status(200).json(Updated);
     } catch (err) {
       console.log(err);
@@ -194,11 +208,11 @@ function UserController() {
       await user.save();
       sendMail(EmailType.ResetPassword, user.email, res, token);
 
-      res
-        .status(200)
-        .json({ message: "Email sent, token: " + user.resetPasswordToken });
+      res.status(200).json({ message: "Email sent" });
+
     } catch (err) {
       next(err);
+      res.status(500).json({ message: "Error sending email" });
     }
   };
 

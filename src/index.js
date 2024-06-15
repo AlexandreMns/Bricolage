@@ -10,7 +10,7 @@ const port = process.env.PORT || 3001;
 const app = express();
 const hostname = "localhost";
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));~
+app.use('/uploads', express.static('uploads'));
 
 app.use(cors());
 

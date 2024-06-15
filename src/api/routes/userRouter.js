@@ -37,7 +37,7 @@ router.get(
 router.get("/list", verifyToken, authorize([scopes["Administrador"]]) ,  userController.UserWithFilters);
 
 //Alterar utilizador
-router.put("/profile/", verifyToken, userController.Update);
+router.put("/profile/", verifyToken,upload.single("imagem"), userController.Update);
 
 //Mudar de password
 router.put(
@@ -49,8 +49,6 @@ router.put(
 //Esqueceu a senha - enviar email
 router.post(
   "/forgot-password",
-  verifyToken,
-  authorize([scopes["Cliente"], scopes["Administrador"]]),
   userController.forgotPassword
 );
 

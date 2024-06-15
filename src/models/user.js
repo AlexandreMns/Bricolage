@@ -19,9 +19,7 @@ const UserSchema = new mongoose.Schema({
   },
   imagem: {
     type: String,
-  },
-  localização: {
-    type: String,
+    required: false,
   },
   telefone: {
     type: Number,

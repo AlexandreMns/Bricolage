@@ -1,7 +1,18 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const { emailType, emailContent } = require("../utils/emailType");
+const { StatusCodes } = require("http-status-codes");
+
+const HttpStatus = require("http-status-codes");
 dotenv.config();
+
+const ERROR_MESSAGES = {
+  SENDING_EMAIL: "Failed to send email"
+};
+
+const SUCCESS_MESSAGES = {
+  EMAIL_SENT_SUCCESSFULLY: "Email sent successfully",
+};
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -12,12 +23,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASSWORD, //falta password
   },
 });
-
-const mailOptions = {
-  to: String,
-  subject: String,
-  html: String,
-};
 
 function sendMail(emailType, to, res, token) {
   const emailInfo = emailContent[emailType];

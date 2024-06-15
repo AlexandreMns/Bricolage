@@ -1,8 +1,6 @@
 function authorize(scopes) {
   return (request, response, next) => {
     const { roleUser } = request;
-    console.log("route scopes:", scopes);
-    console.log("user scopes:", roleUser);
 
     const hasAuthorization = scopes.some((scope) => roleUser.includes(scope));
 

@@ -9,48 +9,50 @@ function ProdutoController(ProdutoModel) {
   const findAll = async (req, res, next) => {
     try {
       let query = {};
-      const { page, limit ,sortBy, titulo } = req.query;
+      const { page = 1, limit = 6, sortBy, titulo } = req.query;
+  
       if (titulo) {
         query.titulo = { $regex: titulo, $options: "i" };
       }
-
+  
       let sortOption = {};
       if (sortBy === "asc") {
         sortOption = { price: 1 };
       } else if (sortBy === "desc") {
         sortOption = { price: -1 };
       }
-
-      if(sortBy){
-        const produtos = await Produto.find(query)
-        .sort(sortBy)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-        const total = await Produto.countDocuments(query);
+  
+      const options = {
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        limit: parseInt(limit),
+      };
+  
+      let produtos;
+      let total;
+  
+      if (sortBy) {
+        produtos = await Produto.find(query)
+          .sort(sortOption)
+          .skip(options.skip)
+          .limit(options.limit);
+  
+        total = await Produto.countDocuments(query);
+      } else {
+        produtos = await Produto.find(query)
+          .skip(options.skip)
+          .limit(options.limit);
+  
+        total = await Produto.countDocuments(query);
+      }
   
       res.json({
         produtos,
         total,
         page: parseInt(page),
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / parseInt(limit)),
       });
-      }else{
-        const produtos = await Produto.find(query)
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-        const total = await Produto.countDocuments(query);
-        
-      res.json({
-        produtos,
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-      });
-      }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).send({ message: "Erro ao buscar produtos" });
       next(err);
     }
@@ -128,7 +130,7 @@ function ProdutoController(ProdutoModel) {
         description,
         price,
         quantidadeMinima,
-        imagem: imagem.path,
+        imagem: imagem.filename,
       });
 
       await save(newProduct);
@@ -153,20 +155,25 @@ function ProdutoController(ProdutoModel) {
   const findOne = async (req, res, next) => {
     try {
       const id = req.params.id;
-      const product = await Produto.findOne({ _id: id });
-      if (!product) {
-        res.status(404);
-        res.send("Produto não encontrado");
-      } else {
-        res.status(200);
-        res.send(product);
+  
+      // Verifica se o ID é um ObjectId válido
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "ID inválido" });
       }
+  
+      const product = await Produto.findById(id);
+  
+      if (!product) {
+        return res.status(404).json({ message: "Produto não encontrado" });
+      }
+  
+      res.status(200).json(product);
     } catch (err) {
-      console.log(err);
-      res.status(500).send({ message: "Erro ao buscar produto" });
+      console.error(err);
+      res.status(500).json({ message: "Erro ao buscar produto" });
       next(err);
     }
-  };
+  }
 
   
   function save(newProduct) {

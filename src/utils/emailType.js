@@ -92,7 +92,7 @@ const emailContent = {
                 <p>Obrigado por se registrar na BricolageESTG! Estamos ansiosos para ajudá-lo a realizar os seus projetos de bricolage.</p>
                 <p>Aqui estão algumas ferramentas e recursos para você começar:</p>
                 <div class="button">
-                  <a href="#">Comece a explorar</a>
+                  <a href="http://localhost:3000/home">Comece a explorar</a>
                 </div>
                 <img src="https://picsum.photos/id/201/600/200" alt="Imagem de Bricolage" style="display: block; width: 100%; border-top-left-radius: 8px; border-top-right-radius: 8px;">
                 <p>Se precisar de ajuda, não hesite em nos contactar.</p>

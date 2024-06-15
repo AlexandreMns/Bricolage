@@ -8,31 +8,64 @@ const Product = require("../models/produto");
 const getCart = async (req, res, next) => {
   try {
     const token = req.headers["x-access-token"];
-    const Decoded = await decodeToken(token);
-    const user = await User.findOne({ _id: Decoded.id });
-    const carrinho = user.carrinho;
-    const cart = await ShoppingCart.findById(carrinho);
+    if (!token) {
+      return res.status(400).json({ error: "Token is missing" });
+    }
+
+    const decoded = await decodeToken(token);
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    let cart = await ShoppingCart.findById(user.carrinho);
     if (!cart) {
-      const newCart = new ShoppingCart({
+      // If the cart does not exist, create a new one
+      cart = new ShoppingCart({
         items: [],
         total: 0,
         user: user._id,
       });
-      await newCart.save();
-      user.carrinho = newCart._id;
+      await cart.save();
+      user.carrinho = cart._id;
       await user.save();
-      res.status(200).json(newCart);
-    } else {
-      const Cart = {
-        items: cart.items,
-        total: cart.total,
-      };
-      res.status(200).json(Cart);
+      return res.status(200).json(cart);
     }
+
+    // Check each cart item
+    for (let i = cart.items.length - 1; i >= 0; i--) {
+      const item = cart.items[i];
+      const product = await Product.findById(item.product);
+      if (!product) {
+        // If the product no longer exists, remove the item from the cart
+        const cartItem = await CartItem.findOneAndDelete({
+          user: user._id,
+          product: item.product,
+        });
+        if (cartItem) {
+          cart.items.splice(i, 1);
+        }
+      }
+    }
+
+    // Recalculate the total
+    cart.total = cart.items.reduce((total, item) => {
+      return total + item.totalPrice;
+    }, 0);
+
+    await cart.save();
+    return res.status(200).json(cart);
+
   } catch (error) {
-    console.error("Erro ao buscar os carrinhos:", error);
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 const AddCarrinho = async (req, res, next) => {
   try {
@@ -161,7 +194,6 @@ const updateCart = async (req, res, next) => {
   try {
     const { productID } = req.params;
     const { quantity } = req.body;
-    console.log("Produto ID:", productID);
     const token = req.headers["x-access-token"];
     const Decoded = await decodeToken(token);
     const user = await User.findOne({ _id: Decoded.id });
@@ -172,10 +204,6 @@ const updateCart = async (req, res, next) => {
       user: user._id,
       product: productID,
     });
-    const stock = await Stock.find({
-      product: productID,
-      quantity: { $gt: 0 },
-    });
 
     if (!cartItem) {
       return res.status(400).send("Item não encontrado");
@@ -184,20 +212,53 @@ const updateCart = async (req, res, next) => {
       return res.status(400).send("Carrinho não encontrado");
     }
     if (!product) {
-      return res.status(400).send("Produto não encontrado");
+      const itemIndex = CarrinhoUser.items.findIndex((item) =>
+        item._id.equals(cartItem._id)
+      );
+      if (itemIndex > -1) {
+        CarrinhoUser.items.splice(itemIndex, 1);
+      }
+      await cartItem.deleteOne();
+
+      // Recalcular o total
+      const Total = CarrinhoUser.items.reduce((total, Items) => {
+        return total + Items.totalPrice;
+      }, 0);
+      CarrinhoUser.total = Total;
+      await CarrinhoUser.save();
+      return res.status(200).send(CarrinhoUser);
+
     }
     if (quantity < 0) {
       return res.status(400).send("Quantidade inválida");
     }
-    let totalStockAvailable = stock.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
-    if (quantity > totalStockAvailable) {
-      return res.status(400).send("Quantidade indisponível"); // Use return para sair da função
+
+    if (quantity === 0) {
+      // Remover o item do carrinho
+      const itemIndex = CarrinhoUser.items.findIndex((item) =>
+        item._id.equals(cartItem._id)
+      );
+      if (itemIndex > -1) {
+        CarrinhoUser.items.splice(itemIndex, 1);
+      }
+      await cartItem.deleteOne();
+
+      // Recalcular o total
+      const Total = CarrinhoUser.items.reduce((total, Items) => {
+        return total + Items.totalPrice;
+      }, 0);
+      CarrinhoUser.total = Total;
+      await CarrinhoUser.save();
+
+      return res.status(200).send(CarrinhoUser);
     }
+
+    // Atualizar a quantidade e o preço total do item no carrinho
     cartItem.quantity = quantity;
     cartItem.totalPrice = product.price * quantity;
+    await cartItem.save();
+
+    // Atualizar o item no carrinho
     const itemIndex = CarrinhoUser.items.findIndex((item) =>
       item._id.equals(cartItem._id)
     );
@@ -207,18 +268,20 @@ const updateCart = async (req, res, next) => {
       CarrinhoUser.items.push(cartItem);
     }
 
+    // Recalcular o total do carrinho
     const Total = CarrinhoUser.items.reduce((total, Items) => {
       return total + Items.totalPrice;
     }, 0);
-    await cartItem.save();
     CarrinhoUser.total = Total;
     await CarrinhoUser.save();
+
     res.status(200).send(CarrinhoUser);
   } catch (error) {
     console.error("Erro ao atualizar o carrinho:", error);
     res.status(500).send("Erro ao atualizar o carrinho");
   }
 };
+
 
 module.exports = {
   getCart,

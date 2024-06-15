@@ -102,33 +102,33 @@ function VendaController(VendaModel) {
       const clienteID = decoded.id;
       const user = await User.findOne({ _id: clienteID });
       const CartUser = await ShoppingCart.findById({ _id: user.carrinho });
-
+  
       if (!CartUser) {
         return res.status(400).send({ message: "Carrinho vazio" });
       }
-
+  
       for (let i = 0; i < CartUser.items.length; i++) {
         let id = CartUser.items[i].product._id;
         let product = await Product.findById(id);
         let quantidade = CartUser.items[i].quantity;
-
+  
         let stocks = await Stock.find({
           product: id,
           quantity: { $gt: 0 },
         });
-
+  
         if (!stocks || stocks.length === 0) {
           return res.status(400).json({
             message: "Nenhum estoque disponível para o produto " + id,
           });
         }
-
+  
         // Calcular a quantidade total disponível no estoque
         let totalAvailable = stocks.reduce(
           (acc, stock) => acc + stock.quantity,
           0
         );
-
+  
         // Verificar se a quantidade total disponível é suficiente
         if (quantidade > totalAvailable) {
           return res.status(400).json({
@@ -139,12 +139,12 @@ function VendaController(VendaModel) {
               totalAvailable,
           });
         }
-
+  
         // Deduzir a quantidade necessária dos registros de estoque na ordem apropriada (FIFO)
         let remainingQuantity = quantidade;
         for (let stock of stocks) {
           if (remainingQuantity <= 0) break;
-
+  
           if (stock.quantity >= remainingQuantity) {
             stock.quantity -= remainingQuantity;
             remainingQuantity = 0;
@@ -153,13 +153,13 @@ function VendaController(VendaModel) {
             stock.quantity = 0;
           }
           await stock.save();
-
+  
           if (stock.quantity < product.quantidadeMinima) {
             createAlert(product._id);
           }
         }
       }
-
+  
       // Criar a encomenda
       const total = CartUser.total;
       const venda = new newVenda({
@@ -169,29 +169,31 @@ function VendaController(VendaModel) {
         totalPrice: total,
       });
       await venda.save();
-
+  
       const relatorio = new Relatorio({
         data: Date.now(),
         venda: venda._id,
         price: venda.totalPreço,
         relatorio: "Venda",
       });
-
+  
       for (let i = 0; i < CartUser.items.length; i++) {
         let item = CartUser.items[i]._id;
         const cartItem = await CartItem.findById(item);
         await cartItem.deleteOne();
       }
-
+  
       await relatorio.save();
       await CartUser.deleteOne();
-
+  
       res.status(201).json(venda);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: error.message });
     }
   };
+  
+  
 
   return {
     findOne,
